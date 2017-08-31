@@ -1,0 +1,3 @@
+[submodule "libpasta-ffi"]
+	path = libpasta-ffi
+	url = https://github.com/libpasta/libpasta-ffi
