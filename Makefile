@@ -1,10 +1,11 @@
 targets  = java python php5 ruby
 
 LIBS            = ./libpasta-ffi/target/${BUILD_TYPE}/libpasta.a
-NATIVE_LIBS     = -lcrypto -lc -lm -lc -lutil -lutil -ldl -lrt -lpthread -lgcc_s -lc -lm -lrt -lpthread -lutil
+NATIVE_LIBS     = -lpthread -l:libcrypto.so.1.0.0 -ldl -lm
 SWIG            = swig
 OUTPUT_NAME     = pasta.so
 CC              = gcc
+CC_OPTS         = -z noexecstack
 
 BUILD_TYPE      = release
 
@@ -34,8 +35,8 @@ python: OUTPUT_NAME = _pasta.so
 $(targets): pasta.i libpasta
 	mkdir -p $@/$(OUTPUT_DIR)
 	$(SWIG) -$@ $($@_SWIG_ARGS) -outdir $@ -o $@/pasta_wrap.c  pasta.i
-	$(CC) $@/pasta_wrap.c -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
-	$(CC) -shared $@/pasta_wrap.o $(LIBS)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
+	$(CC) $(CC_OPTS) $@/pasta_wrap.c -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
+	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(LIBS)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
 
 clean:
 	rm -rf $(targets)
