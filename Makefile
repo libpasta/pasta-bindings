@@ -26,7 +26,7 @@ ruby_INCLUDES   = -I$(shell ruby -rrbconfig -e 'puts RbConfig::CONFIG[%q{rubyhdr
 
 all: $(targets)
 
-java: OUTPUT_DIR = META_INF/lib/linux_64
+java: OUTPUT_DIR = META-INF/lib/linux_64
 java: OUTPUT_NAME = libpasta_jni.so
 javascript: CC    = g++
 python: OUTPUT_NAME = _pasta.so
