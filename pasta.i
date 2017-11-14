@@ -13,13 +13,22 @@
 %newobject read_password;
 
 
+ 
+%pragma(java) jniclassimports=%{
+import org.scijava.nativelib.*;
+%}
+
 %pragma(java) jniclasscode=%{
   static {
     try {
-        System.loadLibrary("pasta_jni");
-    } catch (UnsatisfiedLinkError e) {
-      System.err.println("Native code library failed to load. \n" + e);
-      System.exit(1);
+        NativeLoader.loadLibrary("pasta_jni");
+    } catch (Exception e) {
+      try {
+        NativeLibraryUtil.loadNativeLibrary(pastaJNI.class, "pasta_jni");
+      } catch (Exception e2) {
+        System.err.println("Native code library failed to load. \n" + e);
+        System.exit(1);
+      }
     }
   }
 %}

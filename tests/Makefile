@@ -1,34 +1,43 @@
 LD_LIBRARY_PATH="../"
-test:	
-	CGO_LDFLAGS="-l pasta -L../"
+NATIVE_LIBS=-lcrypto -lc -lm -lc -lutil -lutil -ldl -lrt -lpthread -lgcc_s -lc -lm -lrt -lpthread -lutil
+
+all: c java javascript go php python ruby
+
+c:
+	CGO_LDFLAGS="../libpasta-ffi/target/release/libpasta.a"
 
 	@printf "\nTest C:\n"
-	gcc -Wall test.c -lpasta -I../ -o test
+	gcc -Wall test.c ../libpasta-ffi/target/release/libpasta.a -I../ $(NATIVE_LIBS) -o test
 	chmod +x test
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
 	./test
 
-
+java:
 	@printf "\nTest Java:\n"
-	javac -cp .:../libpasta.jar test.java
-	java -cp .:../libpasta.jar test
+	@echo -e "\e[1;33mJava tests should be performed using the libpasta-java repo.\e[0m"
 
-	# @printf "\nTest Javascript (node.js)\n"
-	# cd ../javacsript && node-gyp build
+javascript:
+	@printf "\nTest Javascript (node.js)\n"
+	cd ../javascript && node-gyp build
 
-	@# printf "\nTest Go:\n"
-	@# go test
+go:
+	@printf "\nTest Go:\n"
+	go test
 
+php5 php56 php:
 	@printf "\nTest PHP:\n"
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
-	$(PHP_BIN) test.php
+	@$(PHP_BIN) test.php || \
+	echo -e "\e[1;33mPHP requires either installing libpasta (try: make install_php), or enabling dynamically loaded extensions.\e[0m"
 
+
+python:
 	@printf "\nTest Python:\n"
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
 	python2 test.py
 
+ruby:
 	@printf "\nTest Ruby\n"
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
 	ruby test.rb
 
-.PHONY: test
+.PHONY: all c java javascript go php python ruby
