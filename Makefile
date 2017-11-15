@@ -1,6 +1,7 @@
 targets  = java python php5 ruby
 
-LIBS            = ./libpasta-ffi/target/${BUILD_TYPE}/libpasta.a
+STATIC_LIBPASTA = ./libpasta-ffi/target/${BUILD_TYPE}/libpasta.a
+SHARED_LIBPASTA = -lpasta
 NATIVE_LIBS     = -lpthread -l:libcrypto.so.1.0.0 -ldl -lm
 SWIG            = swig
 OUTPUT_NAME     = pasta.so
@@ -32,16 +33,19 @@ java: OUTPUT_NAME = libpasta_jni.so
 javascript: CC    = g++
 python: OUTPUT_NAME = _pasta.so
 
-$(targets): pasta.i libpasta
+$(targets): pasta.i
 	mkdir -p $@/$(OUTPUT_DIR)
 	$(SWIG) -$@ $($@_SWIG_ARGS) -outdir $@ -o $@/pasta_wrap.c  pasta.i
 	$(CC) $(CC_OPTS) $@/pasta_wrap.c -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
-	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(LIBS)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
+ifdef USE_STATIC
+	make libpasta
+	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
+else
+	$(CC) $(CC_OPTS) -shared $@/pasta_wrap.o $(SHARED_LIBPASTA) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
+endif
 
 clean:
 	rm -rf $(targets)
-	rm -f tests/test.class
-	rm libpasta.jar
 
 force: clean all
 

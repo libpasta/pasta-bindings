@@ -39,10 +39,14 @@ Current Status
 The entire libpasta project is still in an early phase. These bindings are 
 designed for ease of use, and early testing.
 
-For now, libpasta is compiled dynamically, and included as a dependency in the
-produced wrapper, which means linking all the required shared libraries when
-building the wrappers. This step is potentially troublesome. In the future, we
-would like libpasta to be a shared system library.
+In the future, the goal is for libpasta to be a systems library, and thus
+the default assumption is that `libpasta.so` is installed. This can
+be tested with `ldconfig -p | grep libpasta`.
+
+For initial ease of use, we also permit compiling libpasta statically, and
+packaged into the produced wrapper library. This is not ideal, but effective
+for early prototyping. To force use of the static compilation, make with the
+`USE_STATIC` flag, e.g. `USE_STATIC=1 make ...`.
 
 Currently these bindings are designed for `x86_64-unknown-linux-gnu` 
 (as per
