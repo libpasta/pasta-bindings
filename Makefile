@@ -33,11 +33,10 @@ java: OUTPUT_NAME = libpasta_jni.so
 javascript: CC    = g++
 python: OUTPUT_NAME = _pasta.so
 
-$(targets): libpasta pasta.i
+$(targets): pasta.i
 	mkdir -p $@/$(OUTPUT_DIR)
 	$(SWIG) -$@ $($@_SWIG_ARGS) -outdir $@ -o $@/pasta_wrap.c  pasta.i
 	$(CC) $(CC_OPTS) $@/pasta_wrap.c -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
-	make libpasta
 ifdef USE_STATIC
 	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
 else
@@ -56,7 +55,6 @@ test: all
 	make -C tests/ c $(targets)
 
 libpasta-sync:
-
 ifneq ($(shell git -C libpasta/ rev-parse --abbrev-ref HEAD),master)
 	git submodule update --init --recursive
 	cd libpasta && git fetch && git checkout origin/master
@@ -65,7 +63,7 @@ endif
 libpasta/build/libpasta.%:
 	make -C libpasta $(@F)
 
-libpasta: libpasta/build/libpasta.a libpasta/build/libpasta.so
+libpasta: libpasta-sync libpasta/build/libpasta.a libpasta/build/libpasta.so
 ifndef USE_STATIC
 	make -C libpasta install
 endif
