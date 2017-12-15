@@ -4,13 +4,8 @@ NATIVE_LIBS=-lcrypto -lc -lm -lc -lutil -lutil -ldl -lrt -lpthread -lgcc_s -lc -
 all: c java javascript go php python ruby
 
 c:
-	CGO_LDFLAGS="../libpasta-ffi/target/release/libpasta.a"
-
 	@printf "\nTest C:\n"
-	gcc -Wall test.c ../libpasta-ffi/target/release/libpasta.a -I../ $(NATIVE_LIBS) -o test
-	chmod +x test
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
-	./test
+	@echo -e "\e[1;33mC tests should be performed using the libpasta repo in the libpasta-capi/ folder.\e[0m"
 
 java:
 	@printf "\nTest Java:\n"

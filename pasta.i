@@ -1,11 +1,6 @@
-%module pasta
+%module(package="libpasta") pasta
 %{
-    #include <stdbool.h>
-
-    extern char * hash_password(const char *password);
-    extern bool verify_password(const char* hash, const char *password);
-    extern void free_string(const char *);
-    extern char * read_password(const char *prompt);
+    #include "../libpasta/libpasta-capi/include/pasta.h"
 %}
 
 %typemap(newfree) char * "free_string($1);";
@@ -33,4 +28,4 @@ import org.scijava.nativelib.*;
   }
 %}
 
-%include <pasta.h>
+%include "libpasta/libpasta-capi/include/pasta.h"

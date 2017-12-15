@@ -1,6 +1,6 @@
 targets  = java python php5 ruby
 
-STATIC_LIBPASTA = ./libpasta-ffi/target/${BUILD_TYPE}/libpasta.a
+STATIC_LIBPASTA = ./libpasta/build/libpasta.a
 SHARED_LIBPASTA = -lpasta
 NATIVE_LIBS     = -lpthread -l:libcrypto.so.1.0.0 -ldl -lm
 SWIG            = swig
@@ -26,19 +26,19 @@ php5_INCLUDES   = $(shell $(PHP_CONFIG) --includes)
 python_INCLUDES = $(shell python2-config --includes)
 ruby_INCLUDES   = -I$(shell ruby -rrbconfig -e 'puts RbConfig::CONFIG[%q{rubyhdrdir}]') -I$(shell ruby -rrbconfig -e 'puts RbConfig::CONFIG[%q{rubyarchhdrdir}]')
 
-all: $(targets)
+all: libpasta-sync $(targets)
 
 java: OUTPUT_DIR = META-INF/lib/linux_64
 java: OUTPUT_NAME = libpasta_jni.so
 javascript: CC    = g++
 python: OUTPUT_NAME = _pasta.so
 
-$(targets): pasta.i
+$(targets): libpasta pasta.i
 	mkdir -p $@/$(OUTPUT_DIR)
 	$(SWIG) -$@ $($@_SWIG_ARGS) -outdir $@ -o $@/pasta_wrap.c  pasta.i
 	$(CC) $(CC_OPTS) $@/pasta_wrap.c -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
-ifdef USE_STATIC
 	make libpasta
+ifdef USE_STATIC
 	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
 else
 	$(CC) $(CC_OPTS) -shared $@/pasta_wrap.o $(SHARED_LIBPASTA) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
@@ -46,18 +46,29 @@ endif
 
 clean:
 	rm -rf $(targets)
+	make -C libpasta clean
 
-force: clean all
+force: clean
+	make -C libpasta force
+	make all
 
 test: all
 	make -C tests/ c $(targets)
 
-libpasta: libpasta-ffi/Cargo.toml libpasta-ffi/src/lib.rs
-	cd libpasta-ffi/ && cargo build --${BUILD_TYPE}
+libpasta-sync:
 
-libpasta-ffi/Cargo.toml:
-	git submodule update --remote && git submodule sync
+ifneq ($(shell git -C libpasta/ rev-parse --abbrev-ref HEAD),master)
+	git submodule update --init --recursive
+	cd libpasta && git fetch && git checkout origin/master
+endif
 
+libpasta/build/libpasta.%:
+	make -C libpasta $(@F)
+
+libpasta: libpasta/build/libpasta.a libpasta/build/libpasta.so
+ifndef USE_STATIC
+	make -C libpasta install
+endif
 
 PHP_INI=$(shell $(PHP_BIN) -i | grep -o '/etc/.*/php.ini')
 PHPENMOD := $(shell command -v php${PHP_VERSION}enmod 2> /dev/null)
@@ -72,4 +83,4 @@ else
 endif
 
 
-.PHONY: all clean force test libpasta-ffi/Cargo.toml
+.PHONY: all clean force test libpasta-sync

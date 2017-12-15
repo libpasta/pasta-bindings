@@ -18,7 +18,7 @@ The following logic is used to produce the language bindings:
 
 We define the C header file in [pasta.h](./pasta.h) which corresponds to the
 Rust definitions from the
-[libpasta-ffi](https://github.com/libpasta/libpasta-ffi) crate (included as a
+[libpasta-capi](https://github.com/libpasta/libpasta/tree/master/libpasta-capi) crate (included as a
 submodule for convenience).
 
 This header file is now compatible with using SWIG, and the [pasta.i](./pasta.i)
