@@ -55,8 +55,8 @@ test: all
 	make -C tests/ c $(targets)
 
 libpasta-sync:
-	git submodule update --init --recursive
-	cd libpasta && git fetch
+	git submodule init
+	cd libpasta && git fetch --all
 ifneq ($(shell git -C libpasta/ rev-parse --abbrev-ref HEAD),master)
 	cd libpasta && git fetch && git checkout origin/master
 endif
