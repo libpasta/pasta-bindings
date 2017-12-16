@@ -1,7 +1,7 @@
 targets  = java python php5 ruby
 
-STATIC_LIBPASTA = ./libpasta/build/libpasta.a
-SHARED_LIBPASTA = -lpasta
+STATIC_LIBPASTA ?= ./libpasta/build/libpasta.a
+SHARED_LIBPASTA ?= -lpasta
 NATIVE_LIBS     = -lpthread -l:libcrypto.so.1.0.0 -ldl -lm
 SWIG            = swig
 OUTPUT_NAME     = pasta.so
@@ -56,6 +56,7 @@ test: all
 
 libpasta-sync:
 	git submodule update --init --recursive
+	cd libpasta && git fetch
 ifneq ($(shell git -C libpasta/ rev-parse --abbrev-ref HEAD),master)
 	cd libpasta && git fetch && git checkout origin/master
 endif
