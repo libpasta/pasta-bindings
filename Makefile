@@ -41,7 +41,7 @@ $(targets): pasta.i
 ifdef USE_STATIC
 	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
 else
-	$(CC) $(CC_OPTS) -shared $@/pasta_wrap.o $(SHARED_LIBPASTA) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
+	$(CC) $(CC_OPTS) -shared $@/pasta_wrap.o $(SHARED_LIBPASTA) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME) || true
 endif
 
 clean:

@@ -1,4 +1,9 @@
 %module(package="libpasta") pasta
+
+%include <std_pair.i>
+
+
+// 
 %{
     #include "../libpasta/libpasta-capi/include/pasta.h"
 
@@ -9,68 +14,83 @@
     };
 
     class Argon2i: public PrimitiveWrapper {
-      public:
-        Argon2i() {
-            self = default_argon2i();
-        };
-        Argon2i(int passes, int lanes, int kib) {
-          self = new_argon2i(passes, lanes, kib);
-        };
-        Primitive *inner() {
-            return self;
-        };
+        public:
+            Argon2i() {
+                self = default_argon2i();
+            };
+            Argon2i(int passes, int lanes, int kib) {
+              self = new_argon2i(passes, lanes, kib);
+            };
+        protected:
+            Primitive *inner() {
+                return self;
+            };
     };
 
     class Bcrypt: public PrimitiveWrapper {
-      public:
-        Bcrypt() {
-            self = default_bcrypt();
-        };
-        Bcrypt(int cost) {
-          self = new_bcrypt(cost);
-        };
-        Primitive *inner() {
-            return self;
-        };
+        public:
+            Bcrypt() {
+                self = default_bcrypt();
+            };
+            Bcrypt(int cost) {
+              self = new_bcrypt(cost);
+            };
+        protected:
+            Primitive *inner() {
+                return self;
+            };
     };
 
     class Scrypt: public PrimitiveWrapper {
-      public:
-        Scrypt() {
-            self = default_scrypt();
-        };
-        Scrypt(unsigned char log_n, unsigned int r, unsigned int p) {
-          self = new_scrypt(log_n, r, p);
-        };
-        Primitive *inner() {
-            return self;
-        };
+        public:
+            Scrypt() {
+                self = default_scrypt();
+            };
+            Scrypt(unsigned char log_n, unsigned int r, unsigned int p) {
+              self = new_scrypt(log_n, r, p);
+            };
+        protected:
+            Primitive *inner() {
+                return self;
+            };
     };
 %}
+
+// Languages capable of returning composite return types
+#if defined(SWIGRUBY) || defined(SWIGPYTHON)
+%{
+    bool verify_password_update_hash(const char *hash, const char *password, char **INOUT) {
+        return verify_password_update_hash_in_place(hash, password, INOUT);
+    }
+%}
+#else
+%template(ResultHash) std::pair<bool, char *>;
+%{
+    std::pair<bool, char *> verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
+        bool verified = verify_password_update_hash_in_place(hash, password, new_hash);
+        return std::make_pair(verified, *new_hash);
+    }
+%}
+#endif
 
 // For functions returning `char *`, allocate a new String and immediately
 // call `free_string` on the pointer to clean up from Rust.
 %typemap(newfree) char * "free_string($1);";
 
-%include <typemaps.i>
-
 // This input typemap declares that char** requires no input parameter.
 // Instead, the address of a local char* is used to call the function.
 %typemap(in,numinputs=0) char** (char* tmp) %{
-    $1 = &tmp;
+  $1 = &tmp;
 %}
 
-// The malloc'ed pointer is no longer needed, so make sure it is freed.
-%typemap(freearg) char** %{
-    free(*$1);
-%}
-
-#if defined(SWIGRUBY) || defined(SWIGPYTHON)
-  // This input typemap declares that char** requires no input parameter.
-  // Instead, the address of a local char* is used to call the function.
-  %typemap(in,numinputs=0) char** (char* tmp) %{
-      $1 = &tmp;
-  %}
+#if (defined(SWIGRUBY) || defined(SWIGPYTHON))
+    // The malloc'ed pointer is no longer needed, so make sure it is freed.
+    %typemap(freearg) char** %{
+        free(*$1);
+    %}
+    bool verify_password_update_hash(const char *hash, const char *password, char **INOUT);
+#else
+    std::pair<bool, char*> verify_password_update_hash(const char *hash, const char *password, char **INOUT);
 #endif
 
 #if defined(SWIGPYTHON)
@@ -81,22 +101,12 @@
       obj = PyUnicode_FromString(*$1);
       $result = SWIG_Python_AppendOutput($result,obj);
   %}
+
 #elif defined(SWIGRUBY)
   %typemap(argout) char** (VALUE obj) %{
       obj = SWIG_FromCharPtr(*$1);
       $result = SWIG_Ruby_AppendOutput($result, obj);
   %}
-#else
-%inline %{
-  char * verify_password_update_hash_fix(char *hash, const char *password) {
-    char *newhash;
-    if (verify_password_update_hash(hash, password, &newhash)) {
-      return newhash;
-    } else {
-      return "";
-    }
-  }
-%}
 #endif
 
 
@@ -134,21 +144,24 @@ class Argon2i: public PrimitiveWrapper {
     public:
         Argon2i();
         Argon2i(int passes, int lanes, int kib);
+    protected:
         Primitive *inner();
 };
 
 class Bcrypt: public PrimitiveWrapper {
-  public:
-    Bcrypt();
-    Bcrypt(int cost);
-    Primitive *inner();
+    public:
+        Bcrypt();
+        Bcrypt(int cost);
+    protected:
+        Primitive *inner();
 };
 
 class Scrypt: public PrimitiveWrapper {
-  public:
-    Scrypt();
-    Scrypt(unsigned char log_n, unsigned int r, unsigned int p);
-    Primitive *inner();
+    public:
+        Scrypt();
+        Scrypt(unsigned char log_n, unsigned int r, unsigned int p);
+    protected:
+        Primitive *inner();
 };
 
 %nodefaultctor;
@@ -172,9 +185,16 @@ typedef struct Config {
             return config_verify_password(self, hash, password);
         }
 
+#if defined(SWIGRUBY) || defined(SWIGPYTHON)
         bool verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
-            return config_verify_password_update_hash(self, hash, password, new_hash);
+            return verify_password_update_hash_in_place(hash, password, new_hash);
         }
+#else
+        std::pair<bool, char*> verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
+            bool verified = verify_password_update_hash_in_place(hash, password, new_hash);
+            return std::make_pair(verified, *new_hash);
+        }
+#endif
     }
 
 } Config;
@@ -203,6 +223,6 @@ char *hash_password(const char *password);
 char *migrate_hash(const char *hash);
 char *read_password(const char *prompt);
 bool verify_password(const char *hash, const char *password);
-bool verify_password_update_hash(const char *hash, const char *password, char **new_hash);
+// bool verify_password_update_hash(const char *hash, const char *password, char **INOUT);
 
 } // extern "C"
