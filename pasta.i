@@ -1,6 +1,51 @@
 %module(package="libpasta") pasta
 %{
     #include "../libpasta/libpasta-capi/include/pasta.h"
+
+    class PrimitiveWrapper {
+        public:
+            Primitive *self;
+            virtual Primitive *inner() =0;
+    };
+
+    class Argon2i: public PrimitiveWrapper {
+      public:
+        Argon2i() {
+            self = default_argon2i();
+        };
+        Argon2i(int passes, int lanes, int kib) {
+          self = new_argon2i(passes, lanes, kib);
+        };
+        Primitive *inner() {
+            return self;
+        };
+    };
+
+    class Bcrypt: public PrimitiveWrapper {
+      public:
+        Bcrypt() {
+            self = default_bcrypt();
+        };
+        Bcrypt(int cost) {
+          self = new_bcrypt(cost);
+        };
+        Primitive *inner() {
+            return self;
+        };
+    };
+
+    class Scrypt: public PrimitiveWrapper {
+      public:
+        Scrypt() {
+            self = default_scrypt();
+        };
+        Scrypt(unsigned char log_n, unsigned int r, unsigned int p) {
+          self = new_scrypt(log_n, r, p);
+        };
+        Primitive *inner() {
+            return self;
+        };
+    };
 %}
 
 // For functions returning `char *`, allocate a new String and immediately
@@ -80,4 +125,84 @@ import org.scijava.nativelib.*;
   }
 %}
 
-%include "libpasta/libpasta-capi/include/pasta.h"
+class PrimitiveWrapper {
+    public:
+        virtual Primitive *inner() =0;
+};
+
+class Argon2i: public PrimitiveWrapper {
+    public:
+        Argon2i();
+        Argon2i(int passes, int lanes, int kib);
+        Primitive *inner();
+};
+
+class Bcrypt: public PrimitiveWrapper {
+  public:
+    Bcrypt();
+    Bcrypt(int cost);
+    Primitive *inner();
+};
+
+class Scrypt: public PrimitiveWrapper {
+  public:
+    Scrypt();
+    Scrypt(unsigned char log_n, unsigned int r, unsigned int p);
+    Primitive *inner();
+};
+
+%nodefaultctor;
+%nodefaultdtor;
+
+typedef struct Config {
+    %extend {
+        static Config *with_primitive(PrimitiveWrapper *p) {
+            return config_with_primitive(p->inner());
+        }
+
+        char *hash_password(const char *password) {
+            return config_hash_password(self, password);
+        }
+
+        char *migrate_hash(const char *hash) {
+            return config_migrate_hash(self, hash);
+        }
+
+        bool verify_password(const char *hash, const char *password) {
+            return config_verify_password(self, hash, password);
+        }
+
+        bool verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
+            return config_verify_password_update_hash(self, hash, password, new_hash);
+        }
+    }
+
+} Config;
+
+// We intentionally only pull in a subset of the exported functions
+// %include "libpasta/libpasta-capi/include/pasta-bindings.h"
+
+// Holds possible configuration options
+// See the [module level documentation](index.html) for more information.
+struct Config;
+
+// Password hashing primitives
+//
+// Each variant is backed up by different implementation.
+// Internally, primitives can either be static values, for example,
+// the `lazy_static` generated value `DEFAULT_PRIM`, or dynamically allocated
+// variables, which are `Arc<Box<...>>`.
+//
+// Most operations are expected to be performed using the static functions,
+// since most use the default algorithms. However, the flexibilty to support
+// arbitrary parameter sets is essential.
+struct Primitive;
+
+extern "C" {
+char *hash_password(const char *password);
+char *migrate_hash(const char *hash);
+char *read_password(const char *prompt);
+bool verify_password(const char *hash, const char *password);
+bool verify_password_update_hash(const char *hash, const char *password, char **new_hash);
+
+} // extern "C"

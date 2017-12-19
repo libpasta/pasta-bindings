@@ -5,7 +5,7 @@ SHARED_LIBPASTA ?= -lpasta
 NATIVE_LIBS     = -lpthread -l:libcrypto.so.1.0.0 -ldl -lm
 SWIG            = swig
 OUTPUT_NAME     = pasta.so
-CC              = gcc
+CC              = g++
 CC_OPTS         = -z noexecstack
 
 BUILD_TYPE      = release
@@ -24,6 +24,7 @@ javascript_INCLUDES = -I/usr/include/node/
 php_INCLUDE_DIR = $(shell $(PHP_CONFIG) --include-dir)
 php5_INCLUDES   = $(shell $(PHP_CONFIG) --includes)
 python_INCLUDES = $(shell python2-config --includes)
+python_SWIG_ARGS= -module libpasta
 ruby_INCLUDES   = -I$(shell ruby -rrbconfig -e 'puts RbConfig::CONFIG[%q{rubyhdrdir}]') -I$(shell ruby -rrbconfig -e 'puts RbConfig::CONFIG[%q{rubyarchhdrdir}]')
 
 all: libpasta-sync $(targets)
@@ -35,8 +36,8 @@ python: OUTPUT_NAME = _pasta.so
 
 $(targets): pasta.i
 	mkdir -p $@/$(OUTPUT_DIR)
-	$(SWIG) -$@ $($@_SWIG_ARGS) -outdir $@ -o $@/pasta_wrap.c  pasta.i
-	$(CC) $(CC_OPTS) $@/pasta_wrap.c -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
+	$(SWIG) -$@ $($@_SWIG_ARGS) -c++ -outdir $@ -o $@/pasta_wrap.cpp  pasta.i
+	$(CC) $(CC_OPTS) $@/pasta_wrap.cpp -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
 ifdef USE_STATIC
 	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
 else
