@@ -62,10 +62,10 @@ ifneq ($(shell git -C libpasta/ rev-parse --abbrev-ref HEAD),master)
 	cd libpasta && git fetch && git checkout origin/master
 endif
 
-libpasta/build/libpasta.%:
-	make -C libpasta $(@F)
+libpasta.a libpasta.so:
+	make -C libpasta $@
 
-libpasta: libpasta-sync libpasta/build/libpasta.a libpasta/build/libpasta.so
+libpasta: libpasta-sync libpasta.a libpasta.so
 ifndef USE_STATIC
 	make -C libpasta install
 endif
@@ -83,4 +83,4 @@ else
 endif
 
 
-.PHONY: all clean force test libpasta-sync $(targets)
+.PHONY: all clean force test libpasta-sync libpasta.a libpasta.so

@@ -2,7 +2,6 @@
 
 %include <std_pair.i>
 
-
 // 
 %{
     #include "pasta.h"
