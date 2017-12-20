@@ -5,12 +5,13 @@
 
 // 
 %{
-    #include "../libpasta/libpasta-capi/include/pasta.h"
+    #include "pasta.h"
 
     class PrimitiveWrapper {
         public:
             Primitive *self;
             virtual Primitive *inner() =0;
+            virtual ~PrimitiveWrapper()=0;
     };
 
     class Argon2i: public PrimitiveWrapper {
@@ -21,6 +22,11 @@
             Argon2i(int passes, int lanes, int kib) {
               self = new_argon2i(passes, lanes, kib);
             };
+            ~Argon2i() {
+                free_Primitive(self);
+                delete &self;
+                self = NULL;
+            }
         protected:
             Primitive *inner() {
                 return self;
@@ -35,6 +41,11 @@
             Bcrypt(int cost) {
               self = new_bcrypt(cost);
             };
+            ~Bcrypt() {
+                free_Primitive(self);
+                delete &self;
+                self = NULL;
+            }
         protected:
             Primitive *inner() {
                 return self;
@@ -49,6 +60,11 @@
             Scrypt(unsigned char log_n, unsigned int r, unsigned int p) {
               self = new_scrypt(log_n, r, p);
             };
+            ~Scrypt() {
+                free_Primitive(self);
+                delete &self;
+                self = NULL;
+            }
         protected:
             Primitive *inner() {
                 return self;
