@@ -14,6 +14,8 @@
             virtual ~PrimitiveWrapper()=0;
     };
 
+    PrimitiveWrapper::~PrimitiveWrapper() {}
+
     class Argon2i: public PrimitiveWrapper {
         public:
             Argon2i() {
