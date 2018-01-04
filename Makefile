@@ -37,7 +37,7 @@ python: OUTPUT_NAME = _pasta.so
 $(targets): pasta.i
 	mkdir -p $@/$(OUTPUT_DIR)
 	$(SWIG) -$@ $($@_SWIG_ARGS) -c++ -outdir $@ -o $@/pasta_wrap.cpp  pasta.i
-	$(CC) $(CC_OPTS) $@/pasta_wrap.cpp -Ilibpasta/libpasta-capi/include/ -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
+	$(CC) $(CC_OPTS) $@/pasta_wrap.cpp -Ilibpasta/libpasta-capi/include/ -Wall -Wstrict-prototypes  -fPIC -c -g $($@_INCLUDES) -o $@/pasta_wrap.o
 ifdef USE_STATIC
 	$(CC) $(CC_OPTS) -static-libgcc -shared $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME)
 else
@@ -83,4 +83,4 @@ else
 endif
 
 
-.PHONY: all clean force test libpasta-sync
+.PHONY: all clean force test libpasta-sync $(targets)
