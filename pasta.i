@@ -5,6 +5,10 @@
 #if defined(SWIGJAVA)
 %include "enums.swg"
 #endif
+
+%ignore HashUpdate::HashUpdate;
+%ignore PrimitiveWrapper::inner;
+
 // 
 %{
     namespace ffi {
@@ -22,7 +26,6 @@
 
             char *updated = NULL;
 
-        public:
             HashUpdate(HashUpdateFfi *other) {
                 switch(other->tag) {
                     case HashUpdateFfi::Tag::Updated:
@@ -187,7 +190,6 @@ class HashUpdate {
 
         char *updated = NULL;
 
-    public:
         HashUpdate(HashUpdateFfi *other);
         ~HashUpdate();
 };
