@@ -6,7 +6,8 @@ NATIVE_LIBS     = -lpthread -l:libcrypto.so.1.0.0 -ldl -lm
 SWIG            = swig
 OUTPUT_NAME     = pasta.so
 CC              = g++
-CC_OPTS         = -g -z noexecstack -std=c++17 -Wno-deprecated-register -Wno-register
+CC_OPTS         = -z noexecstack -std=c++17 -Wno-register -Wall -fPIC -c -g
+CC_LINK_OPTS    = -z noexecstack -std=c++17 -Wno-deprecated-register
 
 BUILD_TYPE      = release
 
@@ -22,7 +23,7 @@ java_DIR        = $(shell java -XshowSettings 2>&1 | grep java.home | grep '/usr
 java_INCLUDES   = -I$(java_DIR)include/ -I$(java_DIR)include/linux/
 javascript_INCLUDES = -I/usr/include/node/
 php_INCLUDE_DIR = $(shell $(PHP_CONFIG) --include-dir)
-php5_CC_OPTS     = -Wno-unused-labels
+php5_CC_OPTS     = -Wno-unused-label
 php5_INCLUDES   = $(shell $(PHP_CONFIG) --includes)
 python_INCLUDES = $(shell python2-config --includes)
 python_SWIG_ARGS= -module libpasta
@@ -38,11 +39,11 @@ python: OUTPUT_NAME = _pasta.so
 $(targets): pasta.i
 	mkdir -p $@/$(OUTPUT_DIR)
 	$(SWIG) -$@ $($@_SWIG_ARGS) -Wextra -c++ -outdir $@ -o $@/pasta_wrap.cpp  pasta.i
-	$(CC) $(CC_OPTS) $($@_CC_OPTS) -o $@/pasta_wrap.o $@/pasta_wrap.cpp -Ilibpasta/libpasta-capi/include/ -Wall -Wstrict-prototypes -fPIC -c -g $($@_INCLUDES) 
+	$(CC) $(CC_OPTS) $($@_CC_OPTS) -o $@/pasta_wrap.o $@/pasta_wrap.cpp -Ilibpasta/libpasta-capi/include/  $($@_INCLUDES) 
 ifdef USE_STATIC
-	$(CC) $(CC_OPTS) $($@_CC_OPTS) -static-libgcc -shared -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME) $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) 
+	$(CC) $(CC_LINK_OPTS) $($@_CC_LINK_OPTS) -static-libgcc -shared -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME) $@/pasta_wrap.o $(STATIC_LIBPASTA)  -L/usr/lib/ $(NATIVE_LIBS) 
 else
-	$(CC) $(CC_OPTS) -shared -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME) $@/pasta_wrap.o $(SHARED_LIBPASTA)  || true
+	$(CC) $(CC_LINK_OPTS) -shared -o $@/$(OUTPUT_DIR)/$(OUTPUT_NAME) $@/pasta_wrap.o $(SHARED_LIBPASTA)  || true
 endif
 
 clean:

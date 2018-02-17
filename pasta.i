@@ -2,6 +2,9 @@
 
 %include "std_string.i"
 
+#if defined(SWIGJAVA)
+%include "enums.swg"
+#endif
 // 
 %{
     namespace ffi {
