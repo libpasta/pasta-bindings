@@ -27,7 +27,8 @@ php5 php56 php:
 
 python:
 	@printf "\nTest Python:\n"
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
+	@cp "../python/_pasta.so" "../python/_libpasta.so"
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)python/ \
 	python2 test.py
 
 ruby:

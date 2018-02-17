@@ -1,10 +1,41 @@
 %module(package="libpasta") pasta
 
-%include <std_pair.i>
+%include "std_string.i"
 
 // 
 %{
-    #include "pasta.h"
+    namespace ffi {
+        #include "pasta.h"
+    }
+    using namespace ffi;
+
+    class HashUpdate {
+        public:
+            enum Tag {
+              Updated,
+              Ok,
+              Failed,
+            } tag;
+
+            char *updated = NULL;
+
+        public:
+            HashUpdate(HashUpdateFfi *other) {
+                switch(other->tag) {
+                    case HashUpdateFfi::Tag::Updated:
+                        tag = HashUpdate::Updated;
+                        updated = other->updated._0; break;
+                    case HashUpdateFfi::Tag::Ok: tag = HashUpdate::Ok; break;
+                    case HashUpdateFfi::Tag::Failed: tag = HashUpdate::Failed; break;
+                }
+            }
+
+            ~HashUpdate() {
+                free_string(updated);
+                updated = NULL;
+            }
+    };
+
 
     class PrimitiveWrapper {
         public:
@@ -25,7 +56,6 @@
             };
             ~Argon2i() {
                 free_Primitive(self);
-                delete &self;
                 self = NULL;
             }
         protected:
@@ -44,7 +74,6 @@
             };
             ~Bcrypt() {
                 free_Primitive(self);
-                delete &self;
                 self = NULL;
             }
         protected:
@@ -63,7 +92,6 @@
             };
             ~Scrypt() {
                 free_Primitive(self);
-                delete &self;
                 self = NULL;
             }
         protected:
@@ -71,67 +99,24 @@
                 return self;
             };
     };
-%}
 
-// Languages capable of returning composite return types
-#if defined(SWIGRUBY) || defined(SWIGPYTHON)
-%{
-    bool verify_password_update_hash(const char *hash, const char *password, char **INOUT) {
-        return verify_password_update_hash_in_place(hash, password, INOUT);
+    namespace libpasta {
+        HashUpdate *migrate_hash(const char *hash) {
+            return new HashUpdate(ffi::migrate_hash(hash));
+        }
+
+        HashUpdate *verify_password_update_hash(const char *hash, const char *password) {
+            return new HashUpdate(ffi::verify_password_update_hash(hash, password));
+        }
     }
 %}
-#else
-%template(ResultHash) std::pair<bool, char *>;
-%{
-    std::pair<bool, char *> verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
-        bool verified = verify_password_update_hash_in_place(hash, password, new_hash);
-        return std::make_pair(verified, *new_hash);
-    }
-%}
-#endif
 
 // For functions returning `char *`, allocate a new String and immediately
 // call `free_string` on the pointer to clean up from Rust.
 %typemap(newfree) char * "free_string($1);";
-
-// This input typemap declares that char** requires no input parameter.
-// Instead, the address of a local char* is used to call the function.
-%typemap(in,numinputs=0) char** (char* tmp) %{
-  $1 = &tmp;
-%}
-
-#if (defined(SWIGRUBY) || defined(SWIGPYTHON))
-    // The malloc'ed pointer is no longer needed, so make sure it is freed.
-    %typemap(freearg) char** %{
-        free(*$1);
-    %}
-    bool verify_password_update_hash(const char *hash, const char *password, char **INOUT);
-#else
-    std::pair<bool, char*> verify_password_update_hash(const char *hash, const char *password, char **INOUT);
-#endif
-
-#if defined(SWIGPYTHON)
-  // After the function is called, the char** parameter contains a malloc'ed char* pointer.
-  // Construct a Python Unicode object (I'm using Python 3) and append it to
-  // any existing return value for the wrapper.
-  %typemap(argout) char** (PyObject* obj) %{
-      obj = PyUnicode_FromString(*$1);
-      $result = SWIG_Python_AppendOutput($result,obj);
-  %}
-
-#elif defined(SWIGRUBY)
-  %typemap(argout) char** (VALUE obj) %{
-      obj = SWIG_FromCharPtr(*$1);
-      $result = SWIG_Ruby_AppendOutput($result, obj);
-  %}
-#endif
-
-
-
-
 %newobject hash_password;
 %newobject read_password;
-%newobject migrate_password;
+
 
 %pragma(java) jniclassimports=%{
 import org.scijava.nativelib.*;
@@ -152,6 +137,11 @@ import org.scijava.nativelib.*;
   }
 %}
 
+
+
+%nodefaultctor;
+%nodefaultdtor;
+
 class PrimitiveWrapper {
     public:
         virtual Primitive *inner() =0;
@@ -161,6 +151,7 @@ class Argon2i: public PrimitiveWrapper {
     public:
         Argon2i();
         Argon2i(int passes, int lanes, int kib);
+        ~Argon2i();
     protected:
         Primitive *inner();
 };
@@ -169,6 +160,7 @@ class Bcrypt: public PrimitiveWrapper {
     public:
         Bcrypt();
         Bcrypt(int cost);
+        ~Bcrypt();
     protected:
         Primitive *inner();
 };
@@ -177,12 +169,25 @@ class Scrypt: public PrimitiveWrapper {
     public:
         Scrypt();
         Scrypt(unsigned char log_n, unsigned int r, unsigned int p);
+        ~Scrypt();
     protected:
         Primitive *inner();
 };
 
-%nodefaultctor;
-%nodefaultdtor;
+class HashUpdate {
+    public:
+        enum Tag {
+          Updated,
+          Ok,
+          Failed,
+        } tag;
+
+        char *updated = NULL;
+
+    public:
+        HashUpdate(HashUpdateFfi *other);
+        ~HashUpdate();
+};
 
 typedef struct Config {
     %extend {
@@ -194,27 +199,21 @@ typedef struct Config {
             return config_hash_password(self, password);
         }
 
-        char *migrate_hash(const char *hash) {
-            return config_migrate_hash(self, hash);
+        HashUpdate *migrate_hash(const char *hash) {
+            return new HashUpdate(config_migrate_hash(self, hash));
         }
 
         bool verify_password(const char *hash, const char *password) {
             return config_verify_password(self, hash, password);
         }
 
-#if defined(SWIGRUBY) || defined(SWIGPYTHON)
-        bool verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
-            return verify_password_update_hash_in_place(hash, password, new_hash);
+        HashUpdate *verify_password_update_hash(const char *hash, const char *password) {
+            return new HashUpdate(config_verify_password_update_hash(self, hash, password));
         }
-#else
-        std::pair<bool, char*> verify_password_update_hash(const char *hash, const char *password, char **new_hash) {
-            bool verified = verify_password_update_hash_in_place(hash, password, new_hash);
-            return std::make_pair(verified, *new_hash);
-        }
-#endif
     }
 
 } Config;
+
 
 // We intentionally only pull in a subset of the exported functions
 // %include "libpasta/libpasta-capi/include/pasta-bindings.h"
@@ -235,11 +234,16 @@ struct Config;
 // arbitrary parameter sets is essential.
 struct Primitive;
 
-extern "C" {
-char *hash_password(const char *password);
-char *migrate_hash(const char *hash);
-char *read_password(const char *prompt);
-bool verify_password(const char *hash, const char *password);
-// bool verify_password_update_hash(const char *hash, const char *password, char **INOUT);
+namespace libpasta {
+    %newobject migrate_hash;
+    %newobject verify_password_update_hash;
+    HashUpdate *migrate_hash(const char *hash);
+    HashUpdate *verify_password_update_hash(const char *hash, const char *password);
+}
 
-} // extern "C"
+
+extern "C" {
+    char *hash_password(const char *password);
+    char *read_password(const char *prompt);
+    bool verify_password(const char *hash, const char *password);
+}
