@@ -1,11 +1,16 @@
 LD_LIBRARY_PATH="../"
 NATIVE_LIBS=-lcrypto -lc -lm -lc -lutil -lutil -ldl -lrt -lpthread -lgcc_s -lc -lm -lrt -lpthread -lutil
+CGO_CFLAGS="-I../../libpasta/libpasta-capi/include/"
 
-all: c java javascript go php python ruby
+all: c csharp java go php python ruby
 
 c:
 	@printf "\nTest C:\n"
 	@echo -e "\e[1;33mC tests should be performed using the libpasta repo in the libpasta-capi/ folder.\e[0m"
+
+csharp:
+	@printf "\nTest C#\n"
+	@echo -e "\e[1;33mC# tests not yet written.\e[0m"
 
 java:
 	@printf "\nTest Java:\n"
@@ -17,7 +22,8 @@ javascript:
 
 go:
 	@printf "\nTest Go:\n"
-	go test
+	@echo -e "\e[1;33mGo tests not yet configured correctly.\e[0m"
+	# CGO_CFLAGS=$(CGO_CFLAGS) go test
 
 php5 php56 php:
 	@printf "\nTest PHP:\n"

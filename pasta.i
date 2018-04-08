@@ -42,7 +42,6 @@
             }
     };
 
-
     class PrimitiveWrapper {
         public:
             Primitive *self;
@@ -114,6 +113,44 @@
         HashUpdate *verify_password_update_hash(const char *hash, const char *password) {
             return new HashUpdate(ffi::verify_password_update_hash(hash, password));
         }
+
+        class Config {
+            ffi::Config *self;
+
+            public:
+                Config() {
+                    self = config_new();
+                };
+
+                Config(PrimitiveWrapper *p) {
+                    self = config_with_primitive(p->inner());
+                };
+
+                ~Config(){
+                    config_free(self);
+                    self = NULL;
+                };
+
+                static Config *with_primitive(PrimitiveWrapper *p) {
+                    return new Config(p);
+                };
+
+                char *hash_password(const char *password) {
+                    return config_hash_password(self, password);
+                };
+
+                HashUpdate *migrate_hash(const char *hash) {
+                    return new HashUpdate(config_migrate_hash(self, hash));    
+                };
+
+                bool verify_password(const char *hash, const char *password) {
+                    return config_verify_password(self, hash, password);
+                };
+
+                HashUpdate *verify_password_update_hash(const char *hash, const char *password) {
+                    return new HashUpdate(config_verify_password_update_hash(self, hash, password));
+                }
+        };
     }
 %}
 
@@ -194,39 +231,6 @@ class HashUpdate {
         ~HashUpdate();
 };
 
-typedef struct Config {
-    %extend {
-        static Config *with_primitive(PrimitiveWrapper *p) {
-            return config_with_primitive(p->inner());
-        }
-
-        char *hash_password(const char *password) {
-            return config_hash_password(self, password);
-        }
-
-        HashUpdate *migrate_hash(const char *hash) {
-            return new HashUpdate(config_migrate_hash(self, hash));
-        }
-
-        bool verify_password(const char *hash, const char *password) {
-            return config_verify_password(self, hash, password);
-        }
-
-        HashUpdate *verify_password_update_hash(const char *hash, const char *password) {
-            return new HashUpdate(config_verify_password_update_hash(self, hash, password));
-        }
-    }
-
-} Config;
-
-
-// We intentionally only pull in a subset of the exported functions
-// %include "libpasta/libpasta-capi/include/pasta-bindings.h"
-
-// Holds possible configuration options
-// See the [module level documentation](index.html) for more information.
-struct Config;
-
 // Password hashing primitives
 //
 // Each variant is backed up by different implementation.
@@ -244,6 +248,19 @@ namespace libpasta {
     %newobject verify_password_update_hash;
     HashUpdate *migrate_hash(const char *hash);
     HashUpdate *verify_password_update_hash(const char *hash, const char *password);
+
+    class Config {
+        public:
+            Config();
+            Config(PrimitiveWrapper *p);
+            ~Config();
+
+            static Config *with_primitive(PrimitiveWrapper *p);
+            char *hash_password(const char *password);
+            HashUpdate *migrate_hash(const char *hash);
+            bool verify_password(const char *hash, const char *password);
+            HashUpdate *verify_password_update_hash(const char *hash, const char *password);
+    };
 }
 
 
